@@ -1,0 +1,404 @@
+# Control Flow & Abstractions in Elixir: A Review
+
+```elixir
+Mix.install([
+  {:jason, "~> 1.4"},
+  {:kino, "~> 0.8.0", override: true}
+])
+```
+
+## ABSTRACTIONS
+
+*nb. please do not evaluate this livebook all at once. instead, evaluate block by block, uncommenting lines as prompted. if you accidentally evaluate everything, e.g. with `e + a`, go to the dropdown menu to the right of the title and choose "erase output"*
+
+<!-- livebook:{"break_markdown":true} -->
+
+![](images/abstractions.gif)
+
+*Image credit:* [Scenes](https://giphy.com/gifs/animation-loop-3d-3ohc0QIpQgtlN7k7qE")
+
+<!-- livebook:{"break_markdown":true} -->
+
+In computer programming, "abstraction" refers to too many concepts and techniques to be recounted here. Generally speaking, each layer of software on top of hardware, from lower-level machine code and interpreters to higher-level languages and GUIs, is just another representation of how we conceptualize and interact with physical phenomena—the movement of electrical current.
+
+Our discussion today hones in on abstraction as "the concept of procedures, functions, or subroutines which represent a specific [sic] of implementing control flow in programs."[^1](https://en.wikipedia.org/wiki/Abstraction_(computer_science)) Given particular inputs and conditions, we implement an output.
+
+> 
+
+```mermaid
+flowchart
+  Input --- Condition
+  Condition --- 1[Instruction]
+  Condition --- 2[Instruction]
+```
+
+*Diagram credit:* Dockyard Academy curriculum, "Control Flow"
+
+> In other words, *functions are abstractions*. They are models for applying transformations (not mutations!) to our data.
+
+As a functional programming language, Elixir treats functions as first-class citizens. They are a foundation of the language. No working program can be written without one. We can use them almost anywhere—bound to variables, stored in other data types, as arguments to other functions—and we are encouraged to do so.
+
+At our disposition, we have:
+
+* anonymous functions
+* defined functions
+* higher-order functions
+* callback functions
+* pipe operators that enable us to pass functions as arguments to other functions...i.e. to abstract out potentially infinite modular systems, ergo massive behemoth functions, in an easy-to-read line-by-line format.
+
+Elixir functions may be called in a number of ways, but their arity is strict: the number of arguments passed as input must match the number specified in their defintion. Arity can be 0, 1, 2, or even 200.
+
+You may see this written as follows: `zero_arity_function/0` or `one_arity_function/1` or `two_arity_function/2` or `two_hundred_arity_function/200`.
+
+Arguments can possess a default value, to be used unless explicitly passed a substitute:
+
+`File.stream!/3` === `File.stream!(path, modes \\ [], line_or_bytes \\ :line)`
+
+Function inputs can be of many data types: numbers, strings, lists, maps, other functions, etc.
+
+Given the same input, Elixir functions will always produce the same output.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Anonymous functions
+
+<!-- livebook:{"break_markdown":true} -->
+
+Anonymous functions have names but are not so defined. They can be created on-the-fly, for quick and easy use.
+
+```elixir
+nothing_happens_here = fn -> nil end
+
+nothing_happens_here_either = fn x -> x end
+
+literally_nothing_happens_here = fn x -> nil end
+
+well_clearly_we_dont_care_about_x = fn _param -> nil end
+
+two_is_better_than_none = fn x -> x * 2 end
+
+two_params_are_okay_too = fn x, y -> x + y end
+
+or_even_more = fn x, y, z -> x / y / z end
+
+## Comment out the below function and attempt to evaluate. Note that it refuses to compile.
+# but_params_must_be_declared = fn x -> rem(x, y) end
+```
+
+We may pass anonymous functions inside of other functions, or call them directly using the dot syntax. Uncomment and evaluate each function one-by-one.
+
+```elixir
+# Enum.map([7, 8, 9], literally_nothing_happens_here)
+
+# Enum.map([7, 8, 9], two_is_better_than_none)
+
+# two_is_better_than_none.(789)
+
+# or_even_more.(7, 8, 9)
+
+# or_even_more.(or_even_more.(7, 8, 9), or_even_more.(7, 8, 9), or_even_more.(7, 8, 9))
+```
+
+Anonymous functions can run multiple lines:
+
+```elixir
+# this function has an implied return value
+
+multiline_function = fn ->
+  b = "Bogdan\'s "
+  e = "Erlang "
+  a = "Abstract "
+  m = "Machine"
+  (b <> e <> a <> m) |> String.upcase()
+end
+
+multiline_function.()
+```
+
+### Defined functions
+
+<!-- livebook:{"break_markdown":true} -->
+
+Defined functions are composed inside of defined modules.
+
+```elixir
+defmodule Definitions do
+  # defined functions must be defined inside of a module (Elixir .ex or .exs file)
+  def lets_be_honest(name) do
+    IO.puts("You, #{name}, are an amazing computer programmer.")
+  end
+
+  # functions defined as "defp" are private; they are not directly accessible outside of a module
+  defp no_but_seriously do
+    the_truth = :dontletanybodytellyouotherwise
+    IO.inspect(the_truth)
+  end
+end
+
+# Definitions.lets_be_honest("John")
+# Definitions.no_but_seriously()
+```
+
+Publicly defined functions can be called anywhere else within that file or within a compiled Mix project, provided the correct dot syntax is used.
+
+```elixir
+defmodule Definitions do
+  def lets_be_honest(name) do
+    IO.puts("You, #{name}, are an amazing computer programmer.")
+  end
+end
+
+defmodule Internalize do
+  def repeatafterme(name) do
+    Definitions.lets_be_honest(name)
+  end
+end
+
+Internalize.repeatafterme("you, YOU")
+```
+
+### Higher-order functions and callback functions
+
+<!-- livebook:{"break_markdown":true} -->
+
+Higher-order functions are meta! They are functions that call other functions using the dot syntax. The called function is called, ahem, a *callback function*.
+
+```elixir
+# callback function
+another_function = fn x -> x / 2 end
+
+higher_order_function = fn callback -> callback.(3) end
+
+higher_order_function.(another_function)
+```
+
+Callback functions themselves also be higher-order functions!
+
+```elixir
+turtle1 = "turtles "
+turtle2 = fn x -> x <> "all " end
+turtle3 = fn x -> x <> "the " end
+turtle4 = fn x -> x <> "way " end
+turtle5 = fn x -> x <> "down!" end
+
+turtle5.(turtle4.(turtle3.(turtle2.(turtle1))))
+```
+
+### Pipe operators
+
+<!-- livebook:{"break_markdown":true} -->
+
+The `| >` pipe operator gives us the power to build meta functions. It allows us to pass one function as the first argument to the function below. This is beautiful syntax and semantics. Very pleasant to read and write!
+
+```elixir
+# if you can guess the output of this pipeline I randomly built, you win a prize
+
+maths =
+  88.8
+  |> Kernel.+(33.2)
+  |> :math.pow(5)
+  |> Float.to_charlist()
+  # |> IO.inspect()
+  |> Enum.member?(5)
+```
+
+## Conclusion
+
+Anonymous functions, defined functions, higher-order functions, callback functions, pipelines, and their attendant rules and techniques are all forms of abstraction. Elixir presents many other ways of conceptualizing and transforming data; these are but the basics.
+
+## CONTROL FLOW
+
+![](images/control-flow.gif)
+
+[Image credit: M.Poisson](https://giphy.com/gifs/art-code-python-xUOxfoZZhw8HkYWbzG)
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Control flow entails the *shaping of abstraction*.
+
+### Designing control flow means identifying an ideal *method for making decisions about data*.
+
+<!-- livebook:{"break_markdown":true} -->
+
+The three primary forms of conditional logic, aka control flow, are `if`, `case`, and `cond`.
+
+<!-- livebook:{"break_markdown":true} -->
+
+<!-- Learn more at https://mermaid-js.github.io/mermaid -->
+
+```mermaid
+graph TD;
+preconditions --> 2-or-1;
+preconditions --> 2+;
+2-or-1 --> use:if-then-else;
+2+ --> u-need-to-pattern-match?;
+2+ --> u-need-to-truthy-falsy?;
+u-need-to-pattern-match? --> use:case;
+u-need-to-truthy-falsy? --> use:cond
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+### If statements
+
+<!-- livebook:{"break_markdown":true} -->
+
+If statements are our most basic form of control flow. We use them when the truthiness of one or two values will impact how our program proceeds.
+
+```elixir
+# pseudocode
+
+if DockYardAcademy == :superdope do
+  IO.puts("study hard and be grateful!")
+else
+  IO.puts("you must live in an alternate reality")
+end
+```
+
+In many instances we can omit the comparison (`==`, `>`, `<`, etc.) operator:
+
+```elixir
+# pseudocode (hopefully line 4 evaluates?)
+
+if the_universe do
+  IO.puts("proceed to exist as normal")
+else
+  IO.puts("ugh it must be that dang heat death again")
+end
+```
+
+Like functions, if statements can be bound to variables....and written as elegant one-liners:
+
+```elixir
+stomach = :hungry
+advice = "just eat something for god's sake"
+
+advice = if stomach == :grumbling, do: "pizza", else: advice
+advice = if stomach == :growling, do: "tacos", else: advice
+advice = if stomach == :empty, do: "sushi", else: advice
+```
+
+The `else` isn't necessarily necessary.
+
+```elixir
+if true do
+  "true!"
+end
+```
+
+An unfortunate habit, inherited from programming languages without pattern matching (or the below forms of conditional logic), is to write nested if statements. This makes your code much less readable, and is antithetical to Elixir idiom. Proper PUTRID code smell! Avoid, please.
+
+```elixir
+# pseudocode
+
+if something == true do
+  if something_else do
+    if something_something_else do
+      if come_on_seriously? do
+        if this_is_no_longer_logical do
+          IO.gets("Can you tell me where exactly your brain hurts?")
+        else
+          Automaton.test(you)
+        end
+      else
+        IO.puts("This line really just should have been on line 4.\nOr just use cond yo")
+      end
+    end
+  end
+end
+```
+
+**these are so hard to write, even, so I'm not sure this is proper syntax*
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Case
+
+<!-- livebook:{"break_markdown":true} -->
+
+`case` is suitable for when your decision depends on two or more conditions, but all conditions refer to the same element. In this case, we pattern match against the element. Implementation follows the first expression to match against the given clause.
+
+```elixir
+case 1 do
+  3 -> "if this matches then something is wrong with reality"
+  2 -> "the same goes for this"
+  1 -> "whew i was scared there for a second"
+end
+```
+
+The final clause in `case` statements is almost always a "catch-all," meaning that if reached, its body will evaluate no matter the actual value of the expression.
+
+```elixir
+case 1 do
+  3 -> "if this matches then something is wrong with reality"
+  2 -> "the same goes for this"
+  _ -> "whew i was scared there for a second"
+end
+```
+
+The expression against which we match can also be a function.
+
+```elixir
+pi_to_the_pi = :math.pow(:math.pi(), :math.pi())
+
+case pi_to_the_pi do
+  3.14159 -> "not quite"
+  6.28318 -> "almost looks right but no"
+  9.86958 -> "x times x is not exponential"
+  36.4621596072079 -> "π to the power of π!"
+  _ -> "floating calculations are hard to get right"
+end
+```
+
+### Cond
+
+<!-- livebook:{"break_markdown":true} -->
+
+`cond` is good when you need to confront multiple, otherwise unrelated conditions, and when your code may follow one of many branches.
+
+`cond` uses comparison operators to identify whether a condition is truthy or falsy.
+
+As with `case`, at the first condition that is determined as truthy, the clause body following the `->` is executed. Subsequent conditions are thus ignored.
+
+```elixir
+# example is a modification of one given in the official docs
+
+cond do
+  hd([1, 2, 3]) ->
+    "1 is considered as true"
+
+  tl([1, 2, 3]) ->
+    "if this clause were ever reached, it would print [2, 3]"
+
+  Enum.fetch([1, 2, 3], 1) ->
+    "if this clause were ever reached, it would print {:ok, 2}"
+end
+```
+
+Similar to the `_` in `case`, if no conditions are met, a final catch-all `true` tells the program how to proceed.
+
+```elixir
+# pseudocode 
+
+cond do
+  abstractions === functions -> Presentation.reset()
+  "elixir" > :otherprogramminglanguages -> IO.puts("Obviamente!")
+  true -> Presentation.exit()
+end
+```
+
+## Other forms of control flow
+
+In subsequent lessons we will encounter the many more techniques that Elixir offers to help us decide how to further abstract the act of computing. `with`, `when` guards, multiple function heads, and pattern matching in general open up a wonderful world of graceful, functional programming fun.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Conclusion
+
+Everything is an abstraction in Elixir. This is just the tip of the databerg.
+
+<!-- livebook:{"break_markdown":true} -->
+
+![](images/inconceivable.gif)
+
+*Image credit:* [Disney+](https://media.giphy.com/media/d5x9o48jn7cgQ2JtTZ/giphy.gif)
