@@ -389,7 +389,7 @@ end
 
 ## Other forms of control flow
 
-In subsequent lessons we will encounter the many more techniques that Elixir offers to help us decide how to further abstract the act of computing. `with`, `when` guards, multiple function heads, and pattern matching in general open up a wonderful world of graceful, functional programming fun.
+In subsequent lessons we will encounter the many more techniques that Elixir offers to help us decide how to further abstract and illuminate the act of computing. `with`, `when` guards, multiple function heads, protocols/polymorphism, and pattern matching in general open up a wonderful world of graceful, functional programming fun.
 
 <!-- livebook:{"break_markdown":true} -->
 
